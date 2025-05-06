@@ -1,4 +1,3 @@
-// screens/QuizScreen.js
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -7,10 +6,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator
+  ActivityIndicator,
+  Dimensions,
+  SafeAreaView
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { fetchQuizQuestions } from '../services/quizService';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
+
+const { width, height } = Dimensions.get('window');
 
 const QuizScreen = ({ navigation, route }) => {
   const { difficulty } = route.params;
@@ -128,15 +133,22 @@ const QuizScreen = ({ navigation, route }) => {
 
   const getOptionStyle = (option) => {
     if (!selected) return styles.option;
-    if (option === currentQuestion?.answer) return styles.correctOption;
-    if (option === selected) return styles.wrongOption;
+    
+    if (option === currentQuestion?.answer) {
+      return styles.correctOption;
+    }
+    
+    if (option === selected && option !== currentQuestion?.answer) {
+      return styles.wrongOption;
+    }
+    
     return styles.optionDisabled;
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2196f3" />
+        <ActivityIndicator size="large" color="#6C63FF" />
         <Text style={styles.loadingText}>Loading questions...</Text>
       </View>
     );
@@ -159,20 +171,40 @@ const QuizScreen = ({ navigation, route }) => {
   if (!currentQuestion) {
     return (
       <View style={styles.container}>
-        <Text>No questions available</Text>
+        <Text style={styles.noQuestionsText}>No questions available</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <Text style={styles.question}>
-          {current + 1}. {currentQuestion.question}
-        </Text>
+    <LinearGradient
+      colors={['#F8FAFF', '#EFF2FF']}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header with score and difficulty */}
+        <View style={styles.header}>
+          <View style={[styles.difficultyBadge, styles[`${difficulty}Badge`]]}>
+            <Text style={styles.difficultyText}>{difficulty.toUpperCase()}</Text>
+          </View>
+          <View style={styles.scoreContainer}>
+            <Text style={styles.scoreText}>Score: {score}/{questions.length}</Text>
+          </View>
+        </View>
 
-        <View style={styles.timerContainer}>
-          <Text style={styles.timeText}>⏱ {timeLeft}s</Text>
+        {/* Question and timer */}
+        <Animated.View style={[styles.questionContainer, { opacity: fadeAnim }]}>
+          <View style={styles.questionHeader}>
+            <Text style={styles.questionNumber}>Question {current + 1}/{questions.length}</Text>
+            <View style={styles.timerContainer}>
+              <Feather name="clock" size={18} color="#6C63FF" />
+              <Text style={styles.timeText}>{timeLeft}s</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.questionText}>{currentQuestion.question}</Text>
+          
+          {/* Progress bar */}
           <View style={styles.progressBarBackground}>
             <Animated.View
               style={[
@@ -186,100 +218,292 @@ const QuizScreen = ({ navigation, route }) => {
               ]}
             />
           </View>
-        </View>
+        </Animated.View>
 
+        {/* Options list with improved answer feedback */}
         <FlatList
           data={currentQuestion.options}
           keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => (
+          contentContainerStyle={styles.optionsContainer}
+          renderItem={({ item, index }) => (
             <TouchableOpacity
               style={getOptionStyle(item)}
               onPress={() => !selected && checkAnswer(item)}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               disabled={!!selected}
             >
-              <Text style={styles.optionText}>{item}</Text>
+              <View style={styles.optionContent}>
+                <View style={[
+                  styles.optionBullet,
+                  selected && {
+                    backgroundColor: item === currentQuestion?.answer 
+                      ? '#4CAF50' 
+                      : item === selected 
+                        ? '#F44336' 
+                        : '#E0E0E0'
+                  }
+                ]}>
+                  <Text style={styles.optionBulletText}>
+                    {String.fromCharCode(65 + index)}
+                  </Text>
+                </View>
+                <Text style={[
+                  styles.optionText,
+                  selected && item === currentQuestion?.answer && styles.correctText,
+                  selected && item === selected && item !== currentQuestion?.answer && styles.wrongText
+                ]}>
+                  {item}
+                </Text>
+              </View>
+              
+              {selected && (
+                <View style={[
+                  styles.feedbackBadge,
+                  item === currentQuestion?.answer 
+                    ? styles.correctBadge 
+                    : item === selected 
+                      ? styles.wrongBadge 
+                      : null
+                ]}>
+                  <Feather 
+                    name={item === currentQuestion?.answer ? 'check' : 'x'} 
+                    size={16} 
+                    color="white" 
+                  />
+                </View>
+              )}
             </TouchableOpacity>
           )}
         />
-      </Animated.View>
-    </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center' },
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+    marginHorizontal: 20,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    backgroundColor: '#F8FAFF',
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16
+    marginTop: 15,
+    fontSize: 16,
+    color: '#6C63FF',
+    fontFamily: 'Poppins-Medium',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20
+    backgroundColor: '#F8FAFF',
+    padding: 30,
   },
   errorText: {
-    color: 'red',
-    fontSize: 18,
-    marginBottom: 20
+    color: '#F44336',
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: '#2196f3',
-    padding: 15,
-    borderRadius: 10
+    backgroundColor: '#6C63FF',
+    borderRadius: 12,
+    paddingHorizontal: 25,
+    paddingVertical: 12,
   },
   retryButtonText: {
     color: 'white',
-    fontSize: 16
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
   },
-  question: { fontSize: 22, fontWeight: '600', marginBottom: 20 },
-  timerContainer: { marginBottom: 15 },
-  timeText: { fontSize: 16 },
+  noQuestionsText: {
+    fontSize: 18,
+    color: '#6C63FF',
+    textAlign: 'center',
+    fontFamily: 'Poppins-Medium',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
+  },
+  difficultyBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  easyBadge: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  mediumBadge: {
+    backgroundColor: 'rgba(255, 193, 7, 0.2)',
+    borderWidth: 1,
+    borderColor: '#FFC107',
+  },
+  hardBadge: {
+    backgroundColor: 'rgba(244, 67, 54, 0.2)',
+    borderWidth: 1,
+    borderColor: '#F44336',
+  },
+  difficultyText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  scoreContainer: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  scoreText: {
+    color: '#6C63FF',
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  questionContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  questionNumber: {
+    color: '#6C63FF',
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  timerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeText: {
+    color: '#6C63FF',
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+    marginLeft: 5,
+  },
+  questionText: {
+    fontSize: 20,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#2D3748',
+    lineHeight: 28,
+    marginBottom: 20,
+  },
   progressBarBackground: {
-    height: 10,
-    backgroundColor: '#ccc',
-    borderRadius: 10,
+    height: 6,
+    backgroundColor: '#EDF2F7',
+    borderRadius: 3,
     overflow: 'hidden',
-    marginTop: 5
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#2196f3'
+    backgroundColor: '#6C63FF',
+  },
+  optionsContainer: {
+    paddingBottom: 30,
   },
   option: {
-    padding: 15,
-    marginVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#eee'
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EDF2F7',
   },
   correctOption: {
-    padding: 15,
-    marginVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#4caf50'
+    backgroundColor: '#E8F5E9',
+    borderWidth: 2,
+    borderColor: '#4CAF50',
   },
   wrongOption: {
-    padding: 15,
-    marginVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#f44336'
+    backgroundColor: '#FFEBEE',
+    borderWidth: 2,
+    borderColor: '#F44336',
   },
   optionDisabled: {
-    padding: 15,
-    marginVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#e0e0e0'
+    backgroundColor: '#FAFAFA',
+    borderColor: '#E2E8F0',
+  },
+  optionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  optionBullet: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#6C63FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  optionBulletText: {
+    color: 'white',
+    fontFamily: 'Poppins-Bold',
+    fontSize: 14,
   },
   optionText: {
-    fontSize: 18,
-    color: '#000'
-  }
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+    color: '#2D3748',
+    flex: 1,
+  },
+  correctText: {
+    color: '#2E7D32',
+    fontWeight: '600',
+  },
+  wrongText: {
+    color: '#C62828',
+    fontWeight: '600',
+  },
+  feedbackBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  correctBadge: {
+    backgroundColor: '#4CAF50',
+  },
+  wrongBadge: {
+    backgroundColor: '#F44336',
+  },
 });
 
 export default QuizScreen;

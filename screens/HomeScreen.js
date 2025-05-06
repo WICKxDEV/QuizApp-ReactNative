@@ -1,4 +1,3 @@
-// HomeScreen.js
 import React, { useEffect } from 'react';
 import {
   View,
@@ -8,7 +7,7 @@ import {
   Dimensions,
   Animated,
   Easing,
-  Image
+  ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import LottieView from 'lottie-react-native';
@@ -22,7 +21,6 @@ const HomeScreen = ({ navigation }) => {
   const buttonY = new Animated.Value(20);
 
   useEffect(() => {
-    // Staggered animations
     Animated.sequence([
       Animated.timing(titlePosition, {
         toValue: 0,
@@ -46,9 +44,9 @@ const HomeScreen = ({ navigation }) => {
     ]).start();
   }, []);
 
-  const handlePressIn = (scaleValue) => {
+  const handlePressIn = () => {
     Animated.spring(buttonScale, {
-      toValue: scaleValue,
+      toValue: 0.98,
       useNativeDriver: true,
     }).start();
   };
@@ -72,7 +70,10 @@ const HomeScreen = ({ navigation }) => {
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      <View style={styles.content}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <Animated.View style={[styles.header, { transform: [{ translateY: titlePosition }] }]}>
           <LottieView
             source={require('../assets/animations/brain.json')}
@@ -85,7 +86,7 @@ const HomeScreen = ({ navigation }) => {
         </Animated.View>
 
         <View style={styles.buttonContainer}>
-          {['easy', 'medium', 'hard'].map((difficulty, index) => (
+          {['easy', 'medium', 'hard'].map((difficulty) => (
             <Animated.View
               key={difficulty}
               style={[
@@ -101,10 +102,10 @@ const HomeScreen = ({ navigation }) => {
             >
               <TouchableOpacity
                 style={[styles.button, styles[`${difficulty}Button`]]}
-                onPressIn={() => handlePressIn(0.96)}
+                onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
                 onPress={() => startQuiz(difficulty)}
-                activeOpacity={0.85}
+                activeOpacity={0.9}
               >
                 <View style={styles.emojiContainer}>
                   <Text style={styles.emoji}>
@@ -123,7 +124,7 @@ const HomeScreen = ({ navigation }) => {
             </Animated.View>
           ))}
         </View>
-      </View>
+      </ScrollView>
     </LinearGradient>
   );
 };
@@ -150,103 +151,92 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: height * 0.08,
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: height * 0.05,
     paddingBottom: 40,
+    minHeight: height, // Ensure it fills the screen
   },
   header: {
     alignItems: 'center',
-    marginBottom: height * 0.08,
+    marginBottom: height * 0.05,
   },
   brainAnimation: {
-    width: 140,
-    height: 140,
-    marginBottom: 18,
+    width: 180,
+    height: 180,
+    marginBottom: 16,
   },
   title: {
-    fontSize: 44,
+    fontSize: 36,
     color: 'white',
     fontFamily: 'Poppins-Bold',
-    marginBottom: 12,
+    marginBottom: 8,
     textShadowColor: 'rgba(0,0,0,0.25)',
     textShadowOffset: { width: 1, height: 2 },
     textShadowRadius: 8,
-    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 18,
-    color: 'rgba(255,255,255,0.95)',
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
     fontFamily: 'Poppins-Medium',
     textAlign: 'center',
     paddingHorizontal: 20,
-    lineHeight: 26,
-    letterSpacing: 0.3,
+    lineHeight: 22,
   },
   buttonContainer: {
-    marginTop: 10,
+    marginTop: 16,
   },
   buttonWrapper: {
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 6,
+    marginBottom: 12,
   },
   button: {
     width: '100%',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 12,
     backgroundColor: 'white',
     flexDirection: 'row',
     alignItems: 'center',
   },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   emojiContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   emoji: {
-    fontSize: 28,
-    textAlign: 'center',
+    fontSize: 24,
   },
   buttonTextContainer: {
     flex: 1,
   },
   buttonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: 'Poppins-SemiBold',
     color: '#2D3748',
     marginBottom: 2,
   },
   buttonSubtext: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Poppins-Regular',
     color: '#718096',
   },
   easyButton: {
-    borderLeftWidth: 6,
+    borderLeftWidth: 4,
     borderLeftColor: '#48BB78',
     backgroundColor: '#F0FFF4',
   },
   mediumButton: {
-    borderLeftWidth: 6,
+    borderLeftWidth: 4,
     borderLeftColor: '#ECC94B',
     backgroundColor: '#FFFAF0',
   },
   hardButton: {
-    borderLeftWidth: 6,
+    borderLeftWidth: 4,
     borderLeftColor: '#F56565',
     backgroundColor: '#FFF5F5',
   },
