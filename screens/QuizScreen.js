@@ -1,3 +1,4 @@
+// screens/QuizScreen.js
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -5,29 +6,17 @@ import {
   Animated,
   StyleSheet,
   TouchableOpacity,
-  FlatList
+  FlatList,
+  ActivityIndicator
 } from 'react-native';
 import Toast from 'react-native-toast-message';
+import { fetchQuizQuestions } from '../services/quizService';
 
-const questions = [
-  {
-    question: 'What is the capital of France?',
-    options: ['Paris', 'London', 'Berlin', 'Madrid'],
-    answer: 'Paris'
-  },
-  {
-    question: 'What is 5 + 3?',
-    options: ['5', '8', '9', '7'],
-    answer: '8'
-  },
-  {
-    question: 'Which language is used for Android development?',
-    options: ['Swift', 'Kotlin', 'JavaScript', 'Python'],
-    answer: 'Kotlin'
-  }
-];
-
-const QuizScreen = ({ navigation }) => {
+const QuizScreen = ({ navigation, route }) => {
+  const { difficulty } = route.params;
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [current, setCurrent] = useState(0);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(15);
@@ -36,9 +25,31 @@ const QuizScreen = ({ navigation }) => {
   const progress = useRef(new Animated.Value(1)).current;
   const intervalRef = useRef(null);
 
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        const fetchedQuestions = await fetchQuizQuestions(10, difficulty);
+        setQuestions(fetchedQuestions);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+        Toast.show({
+          type: 'error',
+          text1: 'Failed to load quiz',
+          text2: err.message
+        });
+      }
+    };
+
+    loadQuestions();
+  }, [difficulty]);
+
   const currentQuestion = questions[current];
 
   const startTimer = () => {
+    if (!currentQuestion) return;
+    
     setTimeLeft(15);
     progress.setValue(1);
 
@@ -69,11 +80,11 @@ const QuizScreen = ({ navigation }) => {
     }).start();
   };
 
-  const checkAnswer = option => {
+  const checkAnswer = (option) => {
     setSelected(option);
     clearInterval(intervalRef.current);
     const isCorrect = option === currentQuestion.answer;
-  
+
     if (isCorrect) {
       setScore(prev => {
         const newScore = prev + 1;
@@ -83,13 +94,13 @@ const QuizScreen = ({ navigation }) => {
     } else {
       setTimeout(() => moveToNext(score), 1000);
     }
-  
+
     Toast.show({
       type: isCorrect ? 'success' : 'error',
       text1: isCorrect ? '✅ Correct!' : '❌ Wrong!'
     });
   };
-  
+
   const moveToNext = (updatedScore = score) => {
     setSelected(null);
     if (current + 1 < questions.length) {
@@ -97,26 +108,61 @@ const QuizScreen = ({ navigation }) => {
       setTimeLeft(15);
       fadeIn();
     } else {
-      navigation.navigate('Result', { score: updatedScore, total: questions.length });
+      navigation.navigate('Result', { 
+        score: updatedScore, 
+        total: questions.length,
+        difficulty 
+      });
     }
   };
-  
 
   useEffect(() => {
-    startTimer();
-    fadeIn();
+    if (questions.length > 0) {
+      startTimer();
+      fadeIn();
+    }
     return () => {
       clearInterval(intervalRef.current);
-      clearTimeout(intervalRef.current);
     };
-  }, [current]);
+  }, [current, questions]);
 
-  const getOptionStyle = option => {
+  const getOptionStyle = (option) => {
     if (!selected) return styles.option;
-    if (option === currentQuestion.answer) return styles.correctOption;
+    if (option === currentQuestion?.answer) return styles.correctOption;
     if (option === selected) return styles.wrongOption;
     return styles.optionDisabled;
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2196f3" />
+        <Text style={styles.loadingText}>Loading questions...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!currentQuestion) {
+    return (
+      <View style={styles.container}>
+        <Text>No questions available</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -144,7 +190,7 @@ const QuizScreen = ({ navigation }) => {
 
         <FlatList
           data={currentQuestion.options}
-          keyExtractor={item => item}
+          keyExtractor={(item, index) => index.toString()}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={getOptionStyle(item)}
@@ -163,6 +209,35 @@ const QuizScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: 'center' },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 18,
+    marginBottom: 20
+  },
+  retryButton: {
+    backgroundColor: '#2196f3',
+    padding: 15,
+    borderRadius: 10
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16
+  },
   question: { fontSize: 22, fontWeight: '600', marginBottom: 20 },
   timerContainer: { marginBottom: 15 },
   timeText: { fontSize: 16 },

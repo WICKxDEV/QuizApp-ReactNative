@@ -2,37 +2,31 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-const ResultScreen = ({ route, navigation }) => {
-  const score = route?.params?.score ?? 0;
-  const total = route?.params?.total ?? 0;
-  const percentage = ((score / total) * 100).toFixed(0);
+const ResultScreen = ({ navigation, route }) => {
+  const { score, total, difficulty } = route.params;
+  const percentage = Math.round((score / total) * 100);
 
-  const getMessage = () => {
-    if (percentage >= 80) return '🎉 Excellent!';
-    if (percentage >= 50) return '👍 Good Job!';
-    return '🧠 Keep Practicing!';
+  const getResultMessage = () => {
+    if (percentage >= 80) return 'Excellent! 🎉';
+    if (percentage >= 60) return 'Good job! 👍';
+    if (percentage >= 40) return 'Not bad! 😊';
+    return 'Keep practicing! 💪';
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{getMessage()}</Text>
-      <Text style={styles.scoreText}>
-        You scored {score} out of {total}
+      <Text style={styles.title}>Quiz Completed!</Text>
+      <Text style={styles.difficulty}>Difficulty: {difficulty}</Text>
+      <Text style={styles.score}>
+        Your score: {score}/{total} ({percentage}%)
       </Text>
-      <Text style={styles.percentage}>({percentage}%)</Text>
-
+      <Text style={styles.message}>{getResultMessage()}</Text>
+      
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('Quiz')}
-      >
-        <Text style={styles.buttonText}>🔁 Retry Quiz</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.button, styles.secondaryButton]}
         onPress={() => navigation.navigate('Home')}
       >
-        <Text style={styles.buttonText}>🏠 Back to Home</Text>
+        <Text style={styles.buttonText}>Back to Home</Text>
       </TouchableOpacity>
     </View>
   );
@@ -41,41 +35,40 @@ const ResultScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff'
+    padding: 20
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 16,
-    color: '#333'
+    fontWeight: 'bold',
+    marginBottom: 20
   },
-  scoreText: {
-    fontSize: 20,
-    fontWeight: '500',
-    marginBottom: 8
-  },
-  percentage: {
+  difficulty: {
     fontSize: 18,
-    color: '#888',
-    marginBottom: 30
+    marginBottom: 10,
+    color: '#555'
+  },
+  score: {
+    fontSize: 24,
+    marginBottom: 20
+  },
+  message: {
+    fontSize: 22,
+    marginBottom: 30,
+    textAlign: 'center'
   },
   button: {
     backgroundColor: '#2196f3',
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    marginVertical: 10
-  },
-  secondaryButton: {
-    backgroundColor: '#4caf50'
+    padding: 15,
+    borderRadius: 10,
+    width: '80%',
+    alignItems: 'center'
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600'
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold'
   }
 });
 
